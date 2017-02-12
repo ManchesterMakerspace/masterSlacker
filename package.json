@@ -1,0 +1,30 @@
+{
+  "name": "masterSlacker",
+  "version": "1.0.0",
+  "description": "Provides a central places to integrate with slack",
+  "main": "masterSlacker.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/ManchesterMakerspace/masterSlacker.git"
+  },
+  "author": "Manchester Makerspace",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ManchesterMakerspace/paymentNotificationRelay/issues"
+  },
+  "homepage": "https://github.com/ManchesterMakerspace/paymentNotificationRelay#readme",
+  "private": true,
+  "dependencies": {
+    "@slack/client": "^3.6.0",
+    "querystring": "^0.2.0",
+    "request": "^2.76.0",
+    "socket.io": "^1.5.1"
+  },
+  "engines": {
+    "node": "4.2.4",
+    "npm": "2.14.12"
+  }
+}
