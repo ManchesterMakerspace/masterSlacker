@@ -6,6 +6,7 @@ var slack = {
         slack.io.on('connect', function authenticate(){  // once we have connected to IPN lisner
             slack.io.emit('authenticate', {
                 token: process.env.CONNECT_TOKEN,
+                goodBye: 'peace out, girl scout',
                 slack: {
                     username: 'tester',
                     channel: 'test_channel',
