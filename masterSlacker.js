@@ -3,10 +3,11 @@ var ONESELF = 'idformasterslacker';
 
 var bot = { // logic for adding a removing bot integrations
     s: [], // array where we store properties and functions of connected sevices
-    create: function(botProperties, socketId){
+    create: function(botProperties, socketId, goodBye){
         bot.s.push({
             socketId: socketId,
             username: botProperties.username,
+            disconnectMsg: goodBye,
             webhook: new slack.webhook(process.env.SLACK_WEBHOOK_URL, botProperties)
         });
         slack.send(ONESELF)(botProperties.username + ' just connected');
@@ -18,7 +19,9 @@ var bot = { // logic for adding a removing bot integrations
                 var UTCString = new Date().toUTCString();                       // get a string of current time
                 console.log(bot.s[index].username+' disconnecting '+UTCString); // give a warning when a bot is disconnecting
                 slack.send(ONESELF)(bot.s[index].username + ' is disconnecting');
-                bot.s[index].webhook.send('Im disconnected, oh noes');          // one last thing wont happen on falling asleep
+                if(bot.s[index].disconnectMsg){
+                    bot.s[index].webhook.send(bot.s[index].disconnectMsg);      // one last thing wont happen on falling asleep
+                }
                 bot.s.splice(index, 1);                                         // given its there remove bot from bots array
                 // console.log(bot.listEm());                                      // log all current bots
             });
@@ -52,7 +55,7 @@ var slack = {
             username: 'masterSlacker',
             channel: 'test_channel',
             iconEmoji: ':slack:'
-        }, ONESELF);
+        }, ONESELF, 'inconcievable');
     },
     send: function(socketId){
         return function msgEvent(msg){
@@ -103,7 +106,7 @@ var socket = {                                                         // socket
     auth: function(client){                                                   // hold socketObj/key in closure, return callback to authorize user
         return function(authPacket){                                          // data passed from service {token:"valid token", name:"of service"}
             if(authPacket.token === process.env.AUTH_TOKEN && authPacket.slack.username){  // make sure we are connected w/ a trusted source with a name
-                bot.create(authPacket.slack, client.id);                      // returns number in bot array
+                bot.create(authPacket.slack, client.id, authPacket.goodBye);  // returns number in bot array
                 client.on('msg', slack.send(client.id));                      // we trust these services, just relay messages to our slack channel
                 client.on('invite', slackAdmin.invite(client.id));            //
                 client.on('disconnect', bot.disconnect(client.id));           // remove service from service array on disconnect

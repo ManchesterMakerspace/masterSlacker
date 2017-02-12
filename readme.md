@@ -26,6 +26,7 @@ The following is the object that masterSlacker will need to set up your bot
 
     {
         token: "you will need to get this from masterSlacker maintainer"
+        goodBye: "what your service says when it disconnects"             // empty string will not send msg
         slack: {
             username: 'nameyourbot',
             channel: 'channel_to_send_to',
