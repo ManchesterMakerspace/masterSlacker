@@ -53,7 +53,7 @@ var slack = {
     init: function(){
         bot.create({
             username: 'masterSlacker',
-            channel: 'test_channel',
+            channel: 'master_slacker',
             iconEmoji: ':slack:'
         }, ONESELF, 'inconcievable');
     },
