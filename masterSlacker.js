@@ -69,9 +69,9 @@ var slack = {
         return function pmMember(pmPayload){
             bot.do(socketId, function myBot(botNumber){
                 var tempHook = new slack.webhook(process.env.SLACK_WEBHOOK_URL, {
-                    username: bot.s[botNumber].username,
-                    channel: pmPayload.userhandle,
-                    iconEmoji: bot.s[botNumber].iconEmoji,
+                    username: bot.s[botNumber].username,    // reuse name of bot
+                    channel: '@' + pmPayload.userhandle,    // note that we dont need @ as just name is stored in our db
+                    iconEmoji: bot.s[botNumber].iconEmoji,  // reuse handle
                 });
                 tempHook.send(pmPayload.msg); // send pm
             });
