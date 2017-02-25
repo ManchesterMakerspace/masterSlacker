@@ -39,3 +39,10 @@ from there two events can be emitted
 'msg' : takes a string, sends message to channel you set up on
 
 'invite' : takes a email string, invites to default channels
+
+'pm' : takes and object that is looking for following properties
+
+    {
+        msg: 'the message that you are looking to send',
+        userhandle: 'slack_username' // @ preface is added on masterSlacker
+    }
