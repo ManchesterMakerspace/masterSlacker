@@ -7,6 +7,7 @@ var bot = { // logic for adding a removing bot integrations
         bot.s.push({
             socketId: socketId,
             username: botProperties.username,
+            iconEmoji: botProperties.iconEmoji,
             disconnectMsg: goodBye,
             webhook: new slack.webhook(process.env.SLACK_WEBHOOK_URL, botProperties)
         });
@@ -63,6 +64,18 @@ var slack = {
                 bot.s[botNumber].webhook.send(msg);
             });
         };
+    },
+    pm: function(socketId){
+        return function pmMember(pmPayload){
+            bot.do(socketId, function myBot(botNumber){
+                var tempHook = new slack.webhook(process.env.SLACK_WEBHOOK_URL, {
+                    username: bot.s[botNumber].username,
+                    channel: pmPayload.userhandle,
+                    iconEmoji: bot.s[botNumber].iconEmoji,
+                });
+                tempHook.send(pmPayload.msg); // send pm
+            });
+        };
     }
 };
 
@@ -108,7 +121,8 @@ var socket = {                                                         // socket
             if(authPacket.token === process.env.AUTH_TOKEN && authPacket.slack.username){  // make sure we are connected w/ a trusted source with a name
                 bot.create(authPacket.slack, client.id, authPacket.goodBye);  // returns number in bot array
                 client.on('msg', slack.send(client.id));                      // we trust these services, just relay messages to our slack channel
-                client.on('invite', slackAdmin.invite(client.id));            //
+                client.on('invite', slackAdmin.invite(client.id));            // invite new members to slack
+                client.on('pm', slack.pm(client.id));                         // personal message members
                 client.on('disconnect', bot.disconnect(client.id));           // remove service from service array on disconnect
             } else {                                                          // in case token was wrong or name not provided
                 console.log('Rejected socket connection: ' + client.id);
