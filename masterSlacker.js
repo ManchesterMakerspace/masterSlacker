@@ -88,7 +88,7 @@ var slackAdmin = {                                                         // us
         return function onInvite(email){
             bot.do(socketId, function foundbot(botNumber){
                 var request = '&email=' + email + AUTO_INVITE_CHANNELS;    // NOTE: has to be a valid email, no + this or that
-                var inviteAPIcall = 'https://slack.com/api/users.admin.invite?token=' + process.env.SLACK_TOKEN + requets;
+                var inviteAPIcall = 'https://slack.com/api/users.admin.invite?token=' + process.env.SLACK_TOKEN + request;
                 slackAdmin.request.post(inviteAPIcall, function requestRes(error, response, body){
                     var msg = 'NOT MADE';                                                // default to returning a possible error message
                     if(error){msg = 'request error:' + error;}  // post request error
