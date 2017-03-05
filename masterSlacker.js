@@ -76,6 +76,18 @@ var slack = {
                 tempHook.send(pmPayload.msg); // send pm
             });
         };
+    },
+    channelMsg: function(socketId){
+        return function pmMember(pmPayload){
+            bot.do(socketId, function myBot(botNumber){
+                var tempHook = new slack.webhook(process.env.SLACK_WEBHOOK_URL, {
+                    username: bot.s[botNumber].username,    // reuse name of bot
+                    channel: pmPayload.channel,             // send to a different channel
+                    iconEmoji: bot.s[botNumber].iconEmoji,  // reuse handle
+                });
+                tempHook.send(pmPayload.msg);               // send msg
+            });
+        };
     }
 };
 
@@ -123,6 +135,7 @@ var socket = {                                                         // socket
                 client.on('msg', slack.send(client.id));                      // we trust these services, just relay messages to our slack channel
                 client.on('invite', slackAdmin.invite(client.id));            // invite new members to slack
                 client.on('pm', slack.pm(client.id));                         // personal message members
+                client.on('channelMsg', slack.channelMsg(client.id));         // messages to channels outside of default one
                 client.on('disconnect', bot.disconnect(client.id));           // remove service from service array on disconnect
             } else {                                                          // in case token was wrong or name not provided
                 console.log('Rejected socket connection: ' + client.id);
