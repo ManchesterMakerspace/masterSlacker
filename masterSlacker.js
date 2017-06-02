@@ -12,7 +12,6 @@ var bot = { // logic for adding a removing bot integrations
             webhook: new slack.webhook(process.env.SLACK_WEBHOOK_URL, botProperties)
         });
         slack.send(ONESELF)(botProperties.username + ' just connected');
-        // console.log(bot.listEm());         // log all current bots
     },
     disconnect: function(socketId){                                             // hold socketId information in closure
         return function socketDisconnect(){
@@ -24,7 +23,6 @@ var bot = { // logic for adding a removing bot integrations
                     bot.s[index].webhook.send(bot.s[index].disconnectMsg);      // one last thing wont happen on falling asleep
                 }
                 bot.s.splice(index, 1);                                         // given its there remove bot from bots array
-                // console.log(bot.listEm());                                      // log all current bots
             });
         };
     },
@@ -121,16 +119,18 @@ var slackAdmin = {                                                         // us
 
 var socket = {                                                         // socket.io singleton: handles socket server logic
     io: require('socket.io'),                                          // grab socket.io library
+    tokens: process.env.TOKENS.split(', '),                            // comma deliminated string of valid tokens
+    trusted_names: process.env.TRUSTED_NAMES.split(', '),              // comma deliminated string of allowed names
     listen: function(server){                                          // create server and setup on connection events
         socket.io = socket.io(server);                                 // specify http server to make connections w/ to get socket.io object
         socket.io.on('connection', function(client){                   // client holds socket vars and methods for each connection event
             console.log('client connected:'+ client.id);               // notify when clients get connected to be assured good connections
-            client.on('authenticate', socket.auth(client));            // initially clients can only ask to authenticate
+            client.on('authenticate', socket.setup(client));            // initially clients can only ask to authenticate
         }); // basically we want to authorize our users before setting up event handlers for them or adding them to emit whitelist
     },
-    auth: function(client){                                                   // hold socketObj/key in closure, return callback to authorize user
+    setup: function(client){                                                  // hold socketObj/key in closure, return callback to authorize user
         return function(authPacket){                                          // data passed from service {token:"valid token", name:"of service"}
-            if(authPacket.token === process.env.AUTH_TOKEN && authPacket.slack.username){  // make sure we are connected w/ a trusted source with a name
+            if(socket.auth(authPacket)){                                      // make sure we are connected w/ trusted source and name
                 bot.create(authPacket.slack, client.id, authPacket.goodBye);  // returns number in bot array
                 client.on('msg', slack.send(client.id));                      // we trust these services, just relay messages to our slack channel
                 client.on('invite', slackAdmin.invite(client.id));            // invite new members to slack
@@ -138,12 +138,27 @@ var socket = {                                                         // socket
                 client.on('channelMsg', slack.channelMsg(client.id));         // messages to channels outside of default one
                 client.on('disconnect', bot.disconnect(client.id));           // remove service from service array on disconnect
             } else {                                                          // in case token was wrong or name not provided
-                console.log('Rejected socket connection: ' + client.id);
+                slack.send(ONSELF)('Rejected socket connection: ' + client.id);
                 client.on('disconnect', function(){
-                    console.log('Rejected socket disconnected: ' + client.id);
+                    slack.send(ONESELF)('Rejected socket disconnected: ' + client.id);
                 });
             }
         };
+    },
+    auth: function(authPacket){
+        var old_token = process.env.AUTH_TOKEN; // removing old token will let new feature take place
+        if(old_token){ // TODO remove this bit of logic after it becomes undefined
+            if(authPacket.token === old_token && authPacket.slack_username){
+                return true;
+            } else {return false;}
+        } else {
+            for(var i = 0; i < socket.tokens.length; i++){ // parse though array of tokens, there is a name for every token
+                if(authPacket.token === socket.tokens[i] && authPacket.slack.username === socket.trusted_names[i]){
+                    return true;                           // given credentials line up let them do what they want
+                }
+            }
+            return false;                                  // if we don't find something this client is no good
+        }
     }
 };
 
