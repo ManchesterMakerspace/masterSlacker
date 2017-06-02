@@ -119,8 +119,8 @@ var slackAdmin = {                                                         // us
 
 var socket = {                                                         // socket.io singleton: handles socket server logic
     io: require('socket.io'),                                          // grab socket.io library
-    tokens: process.env.TOKENS.split(', '),                            // comma deliminated string of valid tokens
-    trusted_names: process.env.TRUSTED_NAMES.split(', '),              // comma deliminated string of allowed names
+    tokens: process.env.TOKENS ? process.env.TOKENS.split(', ') : [],  // comma deliminated string of valid tokens
+    trusted_names: process.env.TRUSTED_NAMES ? process.env.TRUSTED_NAMES.split(', ') : [], // comma deliminated string of allowed names
     listen: function(server){                                          // create server and setup on connection events
         socket.io = socket.io(server);                                 // specify http server to make connections w/ to get socket.io object
         socket.io.on('connection', function(client){                   // client holds socket vars and methods for each connection event
