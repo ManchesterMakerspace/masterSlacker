@@ -148,7 +148,7 @@ var socket = {                                                         // socket
     auth: function(authPacket){
         var old_token = process.env.AUTH_TOKEN; // removing old token will let new feature take place
         if(old_token){ // TODO remove this bit of logic after it becomes undefined
-            if(authPacket.token === old_token && authPacket.slack_username){
+            if(authPacket.token === old_token && authPacket.slack.username){
                 return true;
             } else {return false;}
         } else {
