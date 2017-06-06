@@ -124,7 +124,7 @@ var socket = {                                                         // socket
     listen: function(server){                                          // create server and setup on connection events
         socket.io = socket.io(server);                                 // specify http server to make connections w/ to get socket.io object
         socket.io.on('connection', function(client){                   // client holds socket vars and methods for each connection event
-            console.log('client connected:'+ client.id);               // notify when clients get connected to be assured good connections
+            // console.log('client connected:'+ client.id);               // notify when clients get connected to be assured good connections
             client.on('authenticate', socket.setup(client));            // initially clients can only ask to authenticate
         }); // basically we want to authorize our users before setting up event handlers for them or adding them to emit whitelist
     },
@@ -138,6 +138,7 @@ var socket = {                                                         // socket
                 client.on('channelMsg', slack.channelMsg(client.id));         // messages to channels outside of default one
                 client.on('disconnect', bot.disconnect(client.id));           // remove service from service array on disconnect
             } else {                                                          // in case token was wrong or name not provided
+                console.log('client tried to connect' + JSON.stingify(authPacket, null, 4));
                 slack.send(ONESELF)('Rejected socket connection: ' + client.id);
                 client.on('disconnect', function(){
                     slack.send(ONESELF)('Rejected socket disconnected: ' + client.id);
@@ -146,19 +147,12 @@ var socket = {                                                         // socket
         };
     },
     auth: function(authPacket){
-        var old_token = process.env.AUTH_TOKEN; // removing old token will let new feature take place
-        if(old_token){ // TODO remove this bit of logic after it becomes undefined
-            if(authPacket.token === old_token && authPacket.slack.username){
-                return true;
-            } else {return false;}
-        } else {
-            for(var i = 0; i < socket.tokens.length; i++){ // parse though array of tokens, there is a name for every token
-                if(authPacket.token === socket.tokens[i] && authPacket.slack.username === socket.trusted_names[i]){
-                    return true;                           // given credentials line up let them do what they want
-                }
+        for(var i = 0; i < socket.tokens.length; i++){ // parse though array of tokens, there is a name for every token
+            if(authPacket.token === socket.tokens[i] && authPacket.slack.username === socket.trusted_names[i]){
+                return true;                           // given credentials line up let them do what they want
             }
-            return false;                                  // if we don't find something this client is no good
         }
+        return false;                                  // if we don't find something this client is no
     }
 };
 
