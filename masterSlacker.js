@@ -138,7 +138,7 @@ var socket = {                                                         // socket
                 client.on('channelMsg', slack.channelMsg(client.id));         // messages to channels outside of default one
                 client.on('disconnect', bot.disconnect(client.id));           // remove service from service array on disconnect
             } else {                                                          // in case token was wrong or name not provided
-                console.log('client tried to connect' + JSON.stingify(authPacket, null, 4));
+                console.log('client tried to connect' + JSON.stringify(authPacket, null, 4));
                 slack.send(ONESELF)('Rejected socket connection: ' + client.id);
                 client.on('disconnect', function(){
                     slack.send(ONESELF)('Rejected socket disconnected: ' + client.id);
