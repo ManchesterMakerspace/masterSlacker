@@ -11,7 +11,6 @@ var bot = { // logic for adding a removing bot integrations
             disconnectMsg: goodBye,
             webhook: new slack.webhook(process.env.SLACK_WEBHOOK_URL, botProperties)
         });
-        slack.send(ONESELF)(botProperties.username + ' just connected');
     },
     disconnect: function(socketId){                                             // hold socketId information in closure
         return function socketDisconnect(){
@@ -124,7 +123,6 @@ var socket = {                                                         // socket
     listen: function(server){                                          // create server and setup on connection events
         socket.io = socket.io(server);                                 // specify http server to make connections w/ to get socket.io object
         socket.io.on('connection', function(client){                   // client holds socket vars and methods for each connection event
-            // console.log('client connected:'+ client.id);               // notify when clients get connected to be assured good connections
             client.on('authenticate', socket.setup(client));            // initially clients can only ask to authenticate
         }); // basically we want to authorize our users before setting up event handlers for them or adding them to emit whitelist
     },
