@@ -8,7 +8,7 @@ var slack = {
                 token: process.env.CONNECT_TOKEN,
                 goodBye: 'peace out, girl scout',
                 slack: {
-                    username: 'tester',
+                    username: process.env.TRUSTED_NAME,
                     channel: 'test_channel',
                     iconEmoji: ':eggplant:'
                 }
@@ -26,6 +26,13 @@ var slack = {
             console.log('Not Connected:'+msg);
         }
     },
+    invite: function(email){
+        if(slack.connected){
+            slack.io.emit('invite', email);
+        } else {
+            console.log('didnt invite');
+        }
+    },
     sayItSlow: function(msg){
         var wordArray = msg.split(' ');
         console.log(wordArray);
@@ -41,5 +48,4 @@ var slack = {
 };
 
 slack.init();
-slack.send('test');
-slack.sayItSlow('This is a test of the non emergancy broadcast system, do not panic this is absolutely a false alarm');
+setTimeout(function(){slack.invite(process.env.EMAIL);}, 6000);
