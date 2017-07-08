@@ -16,7 +16,6 @@ var bot = { // logic for adding a removing bot integrations
         return function socketDisconnect(){
             bot.do(socketId, function removeBot(index){
                 var UTCString = new Date().toUTCString();                       // get a string of current time
-                console.log(bot.s[index].username+' disconnecting '+UTCString); // give a warning when a bot is disconnecting
                 slack.send(ONESELF)(bot.s[index].username + ' is disconnecting');
                 if(bot.s[index].disconnectMsg){
                     bot.s[index].webhook.send(bot.s[index].disconnectMsg);      // one last thing wont happen on falling asleep
@@ -47,6 +46,7 @@ var bot = { // logic for adding a removing bot integrations
 };
 
 var slack = {
+    hook: process.env.SLACK_WEBHOOK_URL,
     webhook: require('@slack/client').IncomingWebhook,   // url to slack intergration called "webhook" can post to any channel as a "bot"
     init: function(){
         bot.create({
@@ -65,7 +65,7 @@ var slack = {
     pm: function(socketId){
         return function pmMember(pmPayload){
             bot.do(socketId, function myBot(botNumber){
-                var tempHook = new slack.webhook(process.env.SLACK_WEBHOOK_URL, {
+                var tempHook = new slack.webhook(slack.hook, {
                     username: bot.s[botNumber].username,    // reuse name of bot
                     channel: '@' + pmPayload.userhandle,    // note that we dont need @ as just name is stored in our db
                     iconEmoji: bot.s[botNumber].iconEmoji,  // reuse handle
@@ -77,7 +77,7 @@ var slack = {
     channelMsg: function(socketId){
         return function pmMember(pmPayload){
             bot.do(socketId, function myBot(botNumber){
-                var tempHook = new slack.webhook(process.env.SLACK_WEBHOOK_URL, {
+                var tempHook = new slack.webhook(slack.hook, {
                     username: bot.s[botNumber].username,    // reuse name of bot
                     channel: pmPayload.channel,             // send to a different channel
                     iconEmoji: bot.s[botNumber].iconEmoji,  // reuse handle
@@ -85,23 +85,41 @@ var slack = {
                 tempHook.send(pmPayload.msg);               // send msg
             });
         };
+    },
+    dm: function(socketId){
+        return function(dm){ // replacement for pm / returned callback takes object with name and msg properties
+            bot.do(socketId, function onThisBot(botIndex){
+                slackAdmin.findHandle(dm.name, function onFind(handle){
+                    var hook = new slack.webhook(slack.hook, {
+                        username: bot.s[botIndex].username,
+                        channel: '@' + handle,
+                        iconEmoji: bot.s[botIndex].iconEmoji
+                    });
+                    hook.send(dm.msg);
+                }, function onNoMember(error){
+                    bot.s[botIndex].webhook.send('Failed to dm ' + dm.name + ': ' + error);
+                });
+            });
+        };
     }
 };
 
 // NOTE cannels and groups are distinctely differant. Groups are private denoted in folling ids with a 'g'. Channels can be joined by any invited team member
 //  groups                                                whosAtTheSpace                                                                  Ourfrontdor
-var AUTO_INVITE_CHANNELS = '&channels=C050A22AL,C050A22B2,G2ADCCBAP,C0GB99JUF,C29L2UMDF,C0MHNCXGV,C1M5NRPB5,C14TZJQSY,C1M6THS3E,C1QCBJ5D3,G391Q3DGX,C3QPR4ZUL';
+var AUTO_INVITE_CHANNELS = '&channels=C050A22AL,C050A22B2,G2ADCCBAP,C0GB99JUF,C29L2UMDF,C0MHNCXGV,C1M5NRPB5,C14TZJQSY,C1M6THS3E,C1QCBJ5D3,G391Q3DGX,C3QPR4ZUL,C5HCA5YLX';
 var slackAdmin = {                                                         // uses slack api for adminastrative functions (needs admin token)
+    APIURL: 'https://slack.com/api/',
+    token: process.env.SLACK_TOKEN,
     request: require('request'),                                           // needed to make post request to slack api
     invite: function(socketId){
         return function onInvite(email){
             bot.do(socketId, function foundbot(botNumber){
                 var request = '&email=' + email + AUTO_INVITE_CHANNELS;    // NOTE: has to be a valid email, no + this or that
-                var inviteAPIcall = 'https://slack.com/api/users.admin.invite?token=' + process.env.SLACK_TOKEN + request;
+                var inviteAPIcall = slackAdmin.APIURL + 'users.admin.invite?token=' + slackAdmin.token + request;
                 slackAdmin.request.post(inviteAPIcall, function requestRes(error, response, body){
                     var msg = 'NOT MADE';                                                // default to returning a possible error message
                     if(error){msg = 'request error:' + error;}  // post request error
-                    else if (response.statusCode == 200){                          // give a good status code
+                    else if (response.statusCode === 200){                          // give a good status code
                         body = JSON.parse(body);
                         if(body.ok){                                               // check if reponse body ok
                             msg = 'invite pending';                                // if true, success!
@@ -113,6 +131,33 @@ var slackAdmin = {                                                         // us
                 });
             });
         };
+    },
+    findHandle: function(memberName, success, fail, cursor){                       // recursively pagenates through request untill a member is or isn't found
+        if(typeof cursor === 'undefined'){cursor = 0;}                             // .. sure this in intensive, but we don't have to store anything
+        var params = '&cursor=' + cursor + '&limit=20&presence=false';             // .. maybe if slack provided a lookup by fullname or email this would be less dumb
+        var APIlistMembers = slackAdmin.APIURL + 'users.list?token=' + slackAdmin.token + params;
+        slackAdmin.request.post(APIlistMembers, function requestResponse(error, response, body){
+            if(error){ fail(error);}
+            else if(response.statusCode === 200){
+                body = JSON.parse(body);
+                if(body.ok){
+                    var seachingForMember = true;
+                    for(var i = 0; i < body.members.length; i++){
+                        if(body.members[i].profile.real_name_normalized === memberName){
+                            success(body.members[i].name);                         // this is the part where we get what we want, everthing else is the opposite
+                            seachingForMember = false;
+                            break;
+                        }
+                    }
+                    if(seachingForMember){
+                        cursor = body.response_metadata.next_cursor;
+                        if(cursor){                                               // given there are more members to search
+                            slackAdmin.findHandle(memberName, success, fail, cursor); // recurse over cursor
+                        } else {fail('Could not find matching handle');}
+                    }
+                } else {fail('Not body possitive');}
+            } else {fail('non 200 status:' + response.statusCode);}
+        });
     }
 };
 
@@ -134,9 +179,9 @@ var socket = {                                                         // socket
                 client.on('invite', slackAdmin.invite(client.id));            // invite new members to slack
                 client.on('pm', slack.pm(client.id));                         // personal message members
                 client.on('channelMsg', slack.channelMsg(client.id));         // messages to channels outside of default one
+                client.on('dm', slack.dm(client.id));                         // Direct message to members
                 client.on('disconnect', bot.disconnect(client.id));           // remove service from service array on disconnect
             } else {                                                          // in case token was wrong or name not provided
-                console.log('client tried to connect' + JSON.stringify(authPacket, null, 4));
                 slack.send(ONESELF)('Rejected socket connection: ' + client.id);
                 client.on('disconnect', function(){
                     slack.send(ONESELF)('Rejected socket disconnected: ' + client.id);
