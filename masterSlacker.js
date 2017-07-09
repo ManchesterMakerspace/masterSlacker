@@ -143,10 +143,12 @@ var slackAdmin = {                                                         // us
                 if(body.ok){
                     var seachingForMember = true;
                     for(var i = 0; i < body.members.length; i++){
-                        if(body.members[i].profile.real_name_normalized === memberName){
-                            success(body.members[i].name);                         // this is the part where we get what we want, everthing else is the opposite
-                            seachingForMember = false;
-                            break;
+                        if(typeof body.members[i].profile.real_name_normalized === 'string'){ // make sure this is a string
+                            if(body.members[i].profile.real_name_normalized.toLowerCase() === memberName.toLowerCase()){
+                                success(body.members[i].name); // this is the part where we get what we want, everthing else is the opposite
+                                seachingForMember = false;
+                                break;
+                            }
                         }
                     }
                     if(seachingForMember){
