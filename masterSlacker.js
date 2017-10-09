@@ -220,7 +220,6 @@ var serve = {                                                // handles express 
         var http = require('http').Server(serve.app);        // http server for express framework
         serve.app.use(serve.parse.json());                   // support JSON bodies
         serve.app.use(serve.parse.urlencoded({extended: true})); // idk, something was broken maybe this fixed it
-        // serve.app.use('/', serve.express.static(path.join(__dirname, 'public'))); // serve static files for site resources
         serve.router = serve.express.Router();               // create express router object to add routing events to
         serve.router.post('/santa', route.santa());          // Don't ask
         serve.app.use(serve.router);                         // get express to user the routes we set
