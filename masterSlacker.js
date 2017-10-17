@@ -104,9 +104,6 @@ var slack = {
     }
 };
 
-// NOTE cannels and groups are distinctely differant. Groups are private denoted in folling ids with a 'g'. Channels can be joined by any invited team member
-//  groups                                              whosAtTheSpace                                                                  Ourfrontdor
-var AUTO_INVITE_CHANNELS='&channels=C050A22AL,C050A22B2,G2ADCCBAP,C0GB99JUF,C29L2UMDF,C0MHNCXGV,C1M5NRPB5,C14TZJQSY,C1M6THS3E,C1QCBJ5D3,G391Q3DGX,C3QPR4ZUL,C5HCA5YLX,C6R2JBWCE,C70BEVD42';
 var slackAdmin = {                                                         // uses slack api for adminastrative functions (needs admin token)
     APIURL: 'https://slack.com/api/',
     token: process.env.SLACK_TOKEN,
@@ -114,7 +111,7 @@ var slackAdmin = {                                                         // us
     invite: function(socketId){
         return function onInvite(email){
             bot.do(socketId, function foundbot(botNumber){
-                var request = '&email=' + email + AUTO_INVITE_CHANNELS;    // NOTE: has to be a valid email, no + this or that
+                var request = '&email=' + email;    // NOTE: has to be a valid email, no + this or that
                 var inviteAPIcall = slackAdmin.APIURL + 'users.admin.invite?token=' + slackAdmin.token + request;
                 slackAdmin.request.post(inviteAPIcall, function requestRes(error, response, body){
                     var msg = 'NOT MADE';                                                // default to returning a possible error message
