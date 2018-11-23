@@ -4,7 +4,7 @@
     "description": "Provides a central places to integrate with slack",
     "main": "masterSlacker.js",
     "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1",
+        "postversion": "git push",
         "start": "node masterSlacker.js"
     },
     "repository": {
@@ -19,9 +19,7 @@
     "homepage": "https://github.com/ManchesterMakerspace/paymentNotificationRelay#readme",
     "private": true,
     "dependencies": {
-        "@slack/client": "^3.14.0",
-        "querystring": "^0.2.0",
-        "request": "^2.76.0",
+        "request": "^2.88.0",
         "socket.io": "^1.5.1"
     },
     "engines": {
