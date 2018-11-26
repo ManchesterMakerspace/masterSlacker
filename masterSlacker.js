@@ -41,8 +41,8 @@ var slack = {                                                         // uses sl
         return function onInvite(email){
             bot.do(socketId, function foundbot(botNumber){
                 var request = '&email=' + email;    // NOTE: has to be a valid email, no + this or that
-                var inviteAPIcall = slackAdmin.APIURL + 'users.admin.invite?token=' + slackAdmin.token + request;
-                slackAdmin.request.post(inviteAPIcall, function requestRes(error, response, body){
+                var inviteAPIcall = slack.APIURL + 'users.admin.invite?token=' + slack.token + request;
+                slack.request.post(inviteAPIcall, function requestRes(error, response, body){
                     var msg = 'NOT MADE';                                                // default to returning a possible error message
                     if(error){msg = 'request error:' + error;}  // post request error
                     else if (response.statusCode === 200){                          // give a good status code
@@ -91,6 +91,24 @@ var socket = {                                                         // socket
     }
 };
 
-var http = require('http').createServer();
+var server = {
+    init: function(){
+        var app = require('express')();
+        app.get('/', function(req, res){
+            res.send('erm');
+        });
+        return require('http').Server(app);
+    },
+    router: function(req, res){
+        res.writeHead(200, {'Content-Type': 'text/html'});
+        var incomingURL = new URL(req.url, 'http://localhost:' + process.env.PORT);
+        res.write('path: ' + incomingURL.pathname + ' host: ' + incomingURL.host + ' port: ' + incomingURL.port);
+        // console.log(Object.getOwnPropertyNames(req));
+        // res.write('fuck');
+        res.end();
+    }
+};
+
+var http = server.init();
 socket.listen(http); // listen and handle socket connections
 http.listen(process.env.PORT);

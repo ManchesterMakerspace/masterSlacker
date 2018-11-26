@@ -55,4 +55,4 @@ var slack = {
 };
 
 slack.init();
-setTimeout(function(){slack.dm(process.env.MEMBER_TO_DM);}, 6000);
+setTimeout(function(){slack.dm(process.env.MEMBER_TO_DM);}, 2000);
