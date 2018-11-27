@@ -33,16 +33,20 @@ var bot = { // logic for adding a removing bot integrations
     }
 };
 
-var slack = {                                                         // uses slack api for adminastrative functions (needs admin token)
-    APIURL: 'https://slack.com/api/',
-    token: process.env.SLACK_TOKEN,
-    request: require('request'),                                           // needed to make post request to slack api
+var request = require('request');
+var slack = {                                             // uses slack api for adminastrative functions (needs admin token)
+    init: function(){
+        var slackEvents = require('@slack/events-api').createEventAdapter(process.env.SLACK_SIGNING_SECRET);
+        slackEvents.on('team_join', slack.onTeamJoin);
+        slackEvents.on('error', console.log);
+        return slackEvents.createServer();     // should return http server object
+    },
     invite: function(socketId){
         return function onInvite(email){
             bot.do(socketId, function foundbot(botNumber){
-                var request = '&email=' + email;    // NOTE: has to be a valid email, no + this or that
-                var inviteAPIcall = slack.APIURL + 'users.admin.invite?token=' + slack.token + request;
-                slack.request.post(inviteAPIcall, function requestRes(error, response, body){
+                var emailParam = '&email=' + email;    // NOTE: has to be a valid email, no + this or that
+                var inviteAPIcall = 'https://slack.com/api/users.admin.invite?token=' + process.env.SLACK_TOKEN + emailParam;
+                request.post(inviteAPIcall, function requestRes(error, response, body){
                     var msg = 'NOT MADE';                                                // default to returning a possible error message
                     if(error){msg = 'request error:' + error;}  // post request error
                     else if (response.statusCode === 200){                          // give a good status code
@@ -57,6 +61,9 @@ var slack = {                                                         // uses sl
                 });
             });
         };
+    },
+    onTeamJoin: function(event){
+        console.log('Received a team_join event: user ' + event.user);
     }
 };
 
@@ -91,24 +98,9 @@ var socket = {                                                         // socket
     }
 };
 
-var server = {
-    init: function(){
-        var app = require('express')();
-        app.get('/', function(req, res){
-            res.send('erm');
-        });
-        return require('http').Server(app);
-    },
-    router: function(req, res){
-        res.writeHead(200, {'Content-Type': 'text/html'});
-        var incomingURL = new URL(req.url, 'http://localhost:' + process.env.PORT);
-        res.write('path: ' + incomingURL.pathname + ' host: ' + incomingURL.host + ' port: ' + incomingURL.port);
-        // console.log(Object.getOwnPropertyNames(req));
-        // res.write('fuck');
-        res.end();
-    }
-};
-
-var http = server.init();
-socket.listen(http); // listen and handle socket connections
-http.listen(process.env.PORT);
+slack.init().then(function(server){
+    socket.listen(server); // listen and handle socket connections
+    server.listen(process.env.PORT, function(){
+        console.log('server listening?');
+    });
+});
