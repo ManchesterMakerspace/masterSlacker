@@ -1,4 +1,8 @@
 // masterSlacker.js ~ Copyright 2016-2018 Manchester Makerspace ~ MIT License
+var MongoClient = require('mongodb').MongoClient;
+var ObjectID = require('mongodb').ObjectID;
+var request = require('request');
+var DB_NAME = process.env.DB_NAME;
 
 var bot = { // logic for adding a removing bot integrations
     s: [], // array where we store properties and functions of connected sevices
@@ -33,11 +37,10 @@ var bot = { // logic for adding a removing bot integrations
     }
 };
 
-var request = require('request');
 var slack = {                                             // uses slack api for adminastrative functions (needs admin token)
     init: function(){
         var slackEvents = require('@slack/events-api').createEventAdapter(process.env.SLACK_SIGNING_SECRET);
-        slackEvents.on('team_join', slack.onTeamJoin);
+        slackEvents.on('team_join', slack.onTeamJoin(console.log));
         slackEvents.on('error', console.log);
         return slackEvents.createServer();     // should return http server object
     },
@@ -62,8 +65,30 @@ var slack = {                                             // uses slack api for 
             });
         };
     },
-    onTeamJoin: function(event){
-        console.log('Received a team_join event: user ' + event.user);
+    onTeamJoin: function(log){ // pass fuction on where to log (slack, cloudwatch, console, ect)
+        return function(event){
+            log(JSON.stringify(event));
+            var email = event.user.profile.email;
+            if(email){ // this assumes the email that we intivited them to slack with is the one that gets signed in with intially, pretty sure bet
+                MongoClient.connect(process.env.MONGODB_URI, {useNewUrlParser: true}, function onConnect(connectError, client){
+                    if(client){
+                        client.db(DB_NAME).collection('members').findOne({email: email}, function onFind(findError, memberDoc){
+                            if(memberDoc){ // given we find a member with this email
+                                client.db(DB_NAME).collection('slack_users').insertOne({
+                                    _id: new ObjectID(),
+                                    member_id: memberDoc._id,
+                                    slack_email: email,
+                                    slack_id: event.user.id
+                                }, function onInsert(insertError){
+                                    if(insertError){log('update error: ' + insertError);}
+                                    client.close();
+                                });
+                            } else {log('error finding member ' + findError);}
+                        });
+                    } else {log('error connectining to database to update new member: ' + connectError);}
+                });
+            } else { log('missing email');}
+        };
     }
 };
 
@@ -100,7 +125,7 @@ var socket = {                                                         // socket
 
 slack.init().then(function(server){
     socket.listen(server); // listen and handle socket connections
-    server.listen(process.env.PORT, function(){
-        console.log('server listening?');
+    server.listen(process.env.PORT, function serverUp(){
+        // something to do when server is up
     });
 });
