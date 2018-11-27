@@ -2,7 +2,9 @@
 var MongoClient = require('mongodb').MongoClient;
 var ObjectID = require('mongodb').ObjectID;
 var request = require('request');
+var https = require('https');
 var DB_NAME = process.env.DB_NAME;
+var DEFAULT_WEBHOOK = process.env.LOG_WH;
 
 var bot = { // logic for adding a removing bot integrations
     s: [], // array where we store properties and functions of connected sevices
@@ -40,9 +42,20 @@ var bot = { // logic for adding a removing bot integrations
 var slack = {                                             // uses slack api for adminastrative functions (needs admin token)
     init: function(){
         var slackEvents = require('@slack/events-api').createEventAdapter(process.env.SLACK_SIGNING_SECRET);
-        slackEvents.on('team_join', slack.onTeamJoin(console.log));
-        slackEvents.on('error', console.log);
+        slackEvents.on('team_join', slack.onTeamJoin(slack.send));
+        slackEvents.on('error', slack.send);
         return slackEvents.createServer();     // should return http server object
+    },
+    send: function(msg, webhook){
+        webhook = webhook ? webhook : DEFAULT_WEBHOOK;
+        var postData = JSON.stringify({'text': msg});
+        var options = {
+            hostname: 'hooks.slack.com', port: 443, method: 'POST', path: webhook,
+            headers: {'Content-Type': 'application/json','Content-Length': postData.length}
+        };
+        var req = https.request(options, function(res){}); // just do it, no need for response
+        req.on('error', function(error){console.log(error);});
+        req.write(postData); req.end();
     },
     invite: function(socketId){
         return function onInvite(email){
@@ -67,7 +80,8 @@ var slack = {                                             // uses slack api for 
     },
     onTeamJoin: function(log){ // pass fuction on where to log (slack, cloudwatch, console, ect)
         return function(event){
-            log(JSON.stringify(event));
+            log(JSON.stringify(event, null, 4));
+            slack.send('Welcome to the makerspace '+event.user.profile.real_name+' ( @'+ event.user.name +' )!\nThis is a good channel to introduce yourself and ask questions.', process.env.NEW_MEMBERS_WH);
             var email = event.user.profile.email;
             if(email){ // this assumes the email that we intivited them to slack with is the one that gets signed in with intially, pretty sure bet
                 MongoClient.connect(process.env.MONGODB_URI, {useNewUrlParser: true}, function onConnect(connectError, client){
@@ -123,9 +137,11 @@ var socket = {                                                         // socket
     }
 };
 
+
 slack.init().then(function(server){
     socket.listen(server); // listen and handle socket connections
     server.listen(process.env.PORT, function serverUp(){
+        // slack.onTeamJoin(slack.send)(eventEG);
         // something to do when server is up
     });
 });
