@@ -1,6 +1,6 @@
 {
     "name": "masterSlacker",
-    "version": "2.1.1",
+    "version": "2.1.2",
     "description": "Provides a central places to integrate with slack",
     "main": "masterSlacker.js",
     "scripts": {
