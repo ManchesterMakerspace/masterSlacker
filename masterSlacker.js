@@ -113,15 +113,17 @@ var database = {
             if(client){
                 client.db(DB_NAME).collection('members').findOne({email: email}, function onFind(findError, memberDoc){
                     if(memberDoc){ // given we find a member with this email
-                        client.db(DB_NAME).collection('slack_users').insertOne({
-                            _id: new ObjectID(),
-                            member_id: memberDoc._id,
-                            slack_email: email,
-                            slack_id: event.user.id,
-                            name: event.user.profile.display_name,
-                            real_name: event.user.real_name
-                        }, function onInsert(insertError){
-                            if(insertError){log('update error: ' + insertError);}
+                        client.db(DB_NAME).collection('slack_users').updateOne({member_id: memberDoc._id}, {
+                            $set: {
+                                _id: new ObjectID(),
+                                member_id: memberDoc._id,
+                                slack_email: email,
+                                slack_id: event.user.id,
+                                name: event.user.profile.display_name,
+                                real_name: event.user.real_name
+                            }
+                        }, {upsert: true}, function onUpdate(updateError, result){
+                            if(updateError){log('update error: ' + updateError);}
                             client.close();
                         });
                     } else {log('error finding member ' + findError);}
